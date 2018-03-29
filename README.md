@@ -61,3 +61,23 @@ You'll have to setup a few things
 - Create a Telegram bot using @BotFather and get the API key, and message ID with you
 - Provide those values using `TELEGRAM_TOKEN` and `TELEGRAM_CHAT_ID`
 - And host it on any server, like Heroku, and use the scheduler feature to call `rake morning`, `rake noon` and `rake evening`
+
+## Visualizing Data
+
+Download the contents of the database's `mood` table into a CSV. It'll look like this:
+
+```csv
+"id","time","value"
+1,"2018-02-11 17:34:53.235841",3
+...
+```
+Okay great. Next, open a Ruby repl and run the following:
+
+```rb
+csv = CSV.read('/Users/ashfurrow/Desktop/moods.csv')
+File.write('output.csv', csv.drop(1).map { |r| [[DateTime.parse(r[1]).to_time.strftime('%F %H:%M')], r[2]] }.map(&:to_csv).join(""))
+```
+
+I might eventually get fancier and filter out to just show mornings/lunchtime/evenings but it's a start.
+
+Open `output.csv` in Numbers, ⌘A the table, and click the graph icon. You _must_ use the **scatter** graph to get Numbers to use the dates as a horizontal axis.

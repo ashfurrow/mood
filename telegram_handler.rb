@@ -37,7 +37,7 @@ module Mood
                 time: Time.now,
                 value: rating
               })
-              bot.api.send_message(chat_id: message.chat.id, text: "Got it! It's marked in the books 📚")
+              bot.api.send_message(chat_id: message.chat.id, text: "Got it! It's marked in the books 📚") unless self.disable_ack
             else
               bot.api.send_message(chat_id: message.chat.id, text: "Only values from 0 to 5 are allowed")
             end
@@ -78,6 +78,10 @@ module Mood
 
     def self.chat_id
       ENV["TELEGRAM_CHAT_ID"]
+    end
+
+    def self.disable_ack
+      ENV["DISABLE_ACKNOWLEDGEMENT"] == "TRUE"
     end
 
     def self.perform_with_bot

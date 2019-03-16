@@ -28,16 +28,25 @@ module Mood
     def self.listen
       self.perform_with_bot do |bot|
         bot.listen do |message|
-          if message.text.to_i > 0 || message.text.strip.start_with?("0")
+          if message.text.to_s.to_i > 0 || message.text.to_s.strip.start_with?("0")
             # As 0 is also a valid value
             rating = message.text.to_i
 
             if rating >= 0 && rating <= 5
               Mood::Database.database[:moods].insert({
-                time: Time.now,
+                time: Time.at(message.date),
                 value: rating
               })
               bot.api.send_message(chat_id: message.chat.id, text: "Got it! It's marked in the books 📚")
+
+              if rating <= 1
+                bot.api.send_message(chat_id: message.chat.id, text: "Feeling down sometimes is okay. Maybe take 2 minutes to reflect on why you're not feeling better, and optionally add a /note")
+                bot.api.send_message(chat_id: message.chat.id, text: "Sending hugs 🤗🤗🤗")
+              end
+
+              if rating == 5
+                bot.api.send_message(chat_id: message.chat.id, text: "💫 Awesome to hear, maybe take 2 minutes to reflect on why you're feeling great, and optionally add a /note")
+              end
             else
               bot.api.send_message(chat_id: message.chat.id, text: "Only values from 0 to 5 are allowed")
             end
@@ -49,10 +58,32 @@ module Mood
     end
 
     def self.handle_input(bot, message)
+      # This is for all the trolls that add the bot to some group conversations
+      # or try to text your bot
+      if message.chat.id.to_s != self.chat_id.to_s
+        puts "Chat ID #{message.chat.id} doesn't match the provided Chat ID #{self.chat_id}"
+        return
+      end
+
       case message.text
         when "/stats"
           avg = Mood::Database.database[:moods].avg(:value).to_f.round(2)
-          bot.api.send_message(chat_id: message.chat.id, text: "The average rate is: #{avg}")
+          total_moods = Mood::Database.database[:moods].count
+          first_mood = Mood::Database.database[:moods].first[:time]
+          number_of_months = (Time.now - first_mood) / 60.0 / 60.0 / 24.0 / 30.0
+          average_number_of_moods = (total_moods / number_of_months) / 30.0
+
+          # Calculates the 7d and 30d average of the last days
+          avg_7d = Mood::Database.database[:moods].where(time: (Date.today - 7)..Date.today).avg(:value).to_f.round(2)
+          avg_30d = Mood::Database.database[:moods].where(time: (Date.today - 30)..Date.today).avg(:value).to_f.round(2)
+
+          bot.api.send_message(chat_id: message.chat.id, text: "The average mood of all time is: #{avg}")
+          bot.api.send_message(chat_id: message.chat.id, text: "The 30d average mood is: #{avg_30d}")
+          bot.api.send_message(chat_id: message.chat.id, text: "The 7d average mood is: #{avg_7d}")
+
+          bot.api.send_message(chat_id: message.chat.id, text: "Total tracked moods: #{total_moods}")
+          bot.api.send_message(chat_id: message.chat.id, text: "Number of months tracked: #{number_of_months.round(1)}")
+          bot.api.send_message(chat_id: message.chat.id, text: "Averaging #{average_number_of_moods.round(1)} per day")
         when "/graph"
           file = Tempfile.new("graph")
           file_path = "#{file.path}.png"
@@ -71,6 +102,17 @@ module Mood
             chat_id: message.chat.id, 
             photo: Faraday::UploadIO.new(file_path, 'image/png')
           )
+        when "/notes"
+          Mood::Database.database[:notes].each do |n|
+            bot.api.send_message(chat_id: message.chat.id, text: "#{n[:time].strftime("%Y-%m-%d")}: #{n[:note]}")
+          end
+        when /\/note\ /
+          note_content = message.text.split("/note ").last
+          Mood::Database.database[:notes].insert({
+            time: Time.at(message.date),
+            note: note_content
+          })
+          bot.api.send_message(chat_id: message.chat.id, text: "Got it! I'll forever remember this note for you 📚")
         else
           bot.api.send_message(chat_id: message.chat.id, text: "Sorry, I don't understand what you're saying, #{message.from.first_name}")
         end

@@ -26,7 +26,7 @@ You can always just text your bot a number, however, I know I'd forget it. That'
 
 It then pulls up this really nice, optimized keyboard in Telegram, with a short description of what each number means.
 
-If you forget one day, that's no big deal at all. The database is simple, it looks like this:
+If you forget to track a day, that's no big deal at all. The database is simple, it looks like this:
 
 ```ruby
 @_db.create_table :moods do
@@ -36,13 +36,15 @@ If you forget one day, that's no big deal at all. The database is simple, it loo
 end
 ```
 
-I decided not to store the information about breakfast, lunch and dinner, as it would make time zones more complex, as I'm traveling quite a bit.
+I decided not to store the information about breakfast, lunch and dinner, as it would make time zones more complex, as [I'm traveling quite a bit](https://whereisfelix.today).
 
 ## Future
 
 ### Graphs
 
 I want a nice visualization page & dashboard for this. Maybe even just send a weekly and monthly summary via Telegram?
+
+Right now, just send `/graph` to your bot to get your historic mood as a simple graph.
 
 ### Alerts
 
@@ -60,7 +62,9 @@ You'll have to setup a few things
 
 - Create a Telegram bot using @BotFather and get the API key, and message ID with you
 - Provide those values using `TELEGRAM_TOKEN` and `TELEGRAM_CHAT_ID`
-- And host it on any server, like Heroku, and use the scheduler feature to call `rake morning`, `rake noon` and `rake evening`
+  - To get the `TELEGRAM_CHAT_ID`, send a message to your bot and then access the following URL in your browser `https://api.telegram.org/bot[TELEGRAM_TOKEN]/getUpdates`. You'll see a message, and within that, the Chat ID to use
+- And host it on any server, like Heroku, and use the Heroku scheduler feature to call `rake morning`, `rake noon` and `rake evening`
+- Make sure to enable the Heroku worker is enabled
 
 ## Visualizing Data
 
